@@ -210,9 +210,12 @@ export async function deleteImageHandler(c: Context<{ Bindings: Env }>): Promise
     // Delete metadata
     await metadataService.deleteImage(id);
 
-    // Invalidate caches
+    // Invalidate caches (包括标签缓存，因为删除图片会影响标签计数)
     const cache = new CacheService(c.env.CACHE_KV);
-    await cache.invalidateAfterImageChange(id);
+    await Promise.all([
+      cache.invalidateAfterImageChange(id),
+      cache.invalidateTagsList(),
+    ]);
 
     return successResponse({ message: '图片已删除' });
 

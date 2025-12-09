@@ -187,11 +187,15 @@ export async function uploadHandler(c: Context<{ Bindings: Env }>): Promise<Resp
       }
     }
 
-    // Invalidate image list cache after successful upload
+    // Invalidate caches after successful upload
     const successCount = results.filter(r => r.status === 'success').length;
     if (successCount > 0) {
       const cache = new CacheService(c.env.CACHE_KV);
-      await cache.invalidateImagesList();
+      // 清除图片列表和标签列表缓存（因为上传可能创建了新标签）
+      await Promise.all([
+        cache.invalidateImagesList(),
+        cache.invalidateTagsList(),
+      ]);
     }
 
     return successResponse({ results });
