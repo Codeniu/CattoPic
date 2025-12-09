@@ -20,12 +20,12 @@ export async function randomHandler(c: Context<{ Bindings: Env }>): Promise<Resp
     const tags = parseTags(tagsParam);
     const exclude = parseTags(excludeParam);
 
-    // Determine orientation
+    // Determine orientation (default to auto-detect based on device)
     let orientation: string | undefined;
     if (orientationParam === 'landscape' || orientationParam === 'portrait') {
       orientation = orientationParam;
-    } else if (orientationParam === 'auto') {
-      // Auto-detect based on user agent
+    } else {
+      // Default: auto-detect based on user agent
       const userAgent = c.req.header('User-Agent');
       orientation = isMobileDevice(userAgent) ? 'portrait' : 'landscape';
     }
