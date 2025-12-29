@@ -1,15 +1,15 @@
-"use client";
+'use client'
 
-import Image from "next/image";
-import React, { useState, useCallback, useRef, useMemo } from "react";
-import { motion } from 'motion/react';
-import { ImageFile } from "../types";
-import { getFullUrl } from "../utils/baseUrl";
-import { toCdnCgiImageUrl } from "../utils/cdnImage";
-import { LoadingSpinner } from "./LoadingSpinner";
-import { getFormatLabel, getOrientationLabel } from "../utils/imageUtils";
-import ContextMenu, { ContextMenuGroup } from "./ContextMenu";
-import { showToast } from "./ToastContainer";
+import Image from 'next/image'
+import React, { useState, useCallback, useRef, useMemo } from 'react'
+import { motion } from 'motion/react'
+import { ImageFile } from '../types'
+import { getFullUrl } from '../utils/baseUrl'
+import { toCdnCgiImageUrl } from '../utils/cdnImage'
+import { LoadingSpinner } from './LoadingSpinner'
+import { getFormatLabel, getOrientationLabel } from '../utils/imageUtils'
+import ContextMenu, { ContextMenuGroup } from './ContextMenu'
+import { showToast } from './ToastContainer'
 import {
   copyOriginalUrl,
   copyWebpUrl,
@@ -17,7 +17,7 @@ import {
   copyMarkdownLink,
   copyHtmlImgTag,
   copyToClipboard,
-} from "../utils/copyImageUtils";
+} from '../utils/copyImageUtils'
 import {
   ClipboardCopyIcon,
   EyeOpenIcon,
@@ -25,28 +25,28 @@ import {
   FileIcon,
   CheckIcon,
   Cross1Icon,
-  CopyIcon
-} from './ui/icons';
+  CopyIcon,
+} from './ui/icons'
 
 // 根据方向确定兜底比例（优先使用元数据 width/height）
 const getFallbackAspectRatio = (orientation: string): string => {
   switch (orientation.toLowerCase()) {
-    case "portrait":
-      return "3 / 4";
-    case "landscape":
-      return "4 / 3";
-    case "square":
-      return "1 / 1";
+    case 'portrait':
+      return '3 / 4'
+    case 'landscape':
+      return '4 / 3'
+    case 'square':
+      return '1 / 1'
     default:
-      return "4 / 3";
+      return '4 / 3'
   }
-};
+}
 
 interface ImageCardProps {
-  image: ImageFile;
-  onClick: (image: ImageFile) => void;
-  onDelete: (id: string) => Promise<void>;
-  displayWidth: number;
+  image: ImageFile
+  onClick: (image: ImageFile) => void
+  onDelete: (id: string) => Promise<void>
+  displayWidth: number
 }
 
 const ImageCard = React.memo(function ImageCard({
@@ -55,197 +55,232 @@ const ImageCard = React.memo(function ImageCard({
   onDelete,
   displayWidth,
 }: ImageCardProps) {
-  const [copyStatus, setCopyStatus] = useState<"idle" | "copied" | "error">("idle");
-  const [isHovered, setIsHovered] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isDeleting, setIsDeleting] = useState(false);
-  const cardRef = useRef<HTMLDivElement>(null);
+  const [copyStatus, setCopyStatus] = useState<'idle' | 'copied' | 'error'>(
+    'idle'
+  )
+  const [isHovered, setIsHovered] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
+  const [isDeleting, setIsDeleting] = useState(false)
+  const cardRef = useRef<HTMLDivElement>(null)
 
   // 右键菜单状态
   const [contextMenu, setContextMenu] = useState({
     isOpen: false,
     x: 0,
     y: 0,
-  });
+  })
 
   // 使用 useMemo 缓存计算结果
-  const isGif = useMemo(() => image.format.toLowerCase() === "gif", [image.format]);
+  const isGif = useMemo(
+    () => image.format.toLowerCase() === 'gif',
+    [image.format]
+  )
   const aspectRatio = useMemo(() => {
     if (image.width > 0 && image.height > 0) {
-      return `${image.width} / ${image.height}`;
+      return `${image.width} / ${image.height}`
     }
-    return getFallbackAspectRatio(image.orientation);
-  }, [image.width, image.height, image.orientation]);
+    return getFallbackAspectRatio(image.orientation)
+  }, [image.width, image.height, image.orientation])
 
   const imageSrc = useMemo(() => {
-    const base = getFullUrl(image.urls?.webp || image.urls?.original || '');
-    if (!base || isGif) return base;
+    const base = getFullUrl(image.urls?.webp || image.urls?.original || '')
+    // if (!base || isGif) return base;
+
+    return base
 
     // Request a resized thumbnail for smoother scrolling (less decode + bandwidth).
     // Use 2x to keep it crisp on high-DPI displays.
-    const requestWidth = Math.max(1, Math.ceil(displayWidth * 2));
-    return toCdnCgiImageUrl(base, { width: requestWidth, quality: 75, format: 'auto', fit: 'scale-down' });
-  }, [displayWidth, image.urls, isGif]);
+    // const requestWidth = Math.max(1, Math.ceil(displayWidth * 2));
+    // return toCdnCgiImageUrl(base, { width: requestWidth, quality: 75, format: 'auto', fit: 'scale-down' });
+  }, [displayWidth, image.urls, isGif])
 
   const handleOpen = useCallback(() => {
-    onClick(image);
-  }, [onClick, image]);
+    onClick(image)
+  }, [onClick, image])
 
   const handleImageLoad = useCallback(() => {
-    setIsLoading(false);
-  }, []);
+    setIsLoading(false)
+  }, [])
 
   // 处理右键菜单
   const handleContextMenu = useCallback((e: React.MouseEvent) => {
-    e.preventDefault();
+    e.preventDefault()
     setContextMenu({
       isOpen: true,
       x: e.clientX,
       y: e.clientY,
-    });
-  }, []);
+    })
+  }, [])
 
   // 关闭右键菜单
   const closeContextMenu = useCallback(() => {
-    setContextMenu(prev => ({ ...prev, isOpen: false }));
-  }, []);
+    setContextMenu(prev => ({ ...prev, isOpen: false }))
+  }, [])
 
   // 复制回调
-  const handleCopy = useCallback(async (type: string) => {
-    try {
-      let success = false;
+  const handleCopy = useCallback(
+    async (type: string) => {
+      try {
+        let success = false
 
-      switch (type) {
-        case "original":
-          success = await copyOriginalUrl(image);
-          break;
-        case "webp":
-          success = await copyWebpUrl(image);
-          break;
-        case "avif":
-          success = await copyAvifUrl(image);
-          break;
-        case "markdown":
-          success = await copyMarkdownLink(image);
-          break;
-        case "html":
-          success = await copyHtmlImgTag(image);
-          break;
-      }
+        switch (type) {
+          case 'original':
+            success = await copyOriginalUrl(image)
+            break
+          case 'webp':
+            success = await copyWebpUrl(image)
+            break
+          case 'avif':
+            success = await copyAvifUrl(image)
+            break
+          case 'markdown':
+            success = await copyMarkdownLink(image)
+            break
+          case 'html':
+            success = await copyHtmlImgTag(image)
+            break
+        }
 
-      if (success) {
-        showToast("复制成功", "success");
-      } else {
-        showToast("复制失败", "error");
+        if (success) {
+          showToast('复制成功', 'success')
+        } else {
+          showToast('复制失败', 'error')
+        }
+      } catch {
+        showToast('复制失败', 'error')
       }
-    } catch {
-      showToast("复制失败", "error");
-    }
-  }, [image]);
+    },
+    [image]
+  )
 
   // 删除图片
-  const handleDelete = useCallback(async (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (isDeleting) return; // 防止重复点击
+  const handleDelete = useCallback(
+    async (e: React.MouseEvent) => {
+      e.stopPropagation()
+      if (isDeleting) return // 防止重复点击
 
-    // 立即关闭右键菜单，乐观更新会立即移除图片
-    closeContextMenu();
-    setIsDeleting(true);
+      // 立即关闭右键菜单，乐观更新会立即移除图片
+      closeContextMenu()
+      setIsDeleting(true)
 
-    try {
-      await onDelete(image.id);
-      // 不需要 toast，乐观更新已经处理了 UI
-    } catch {
-      showToast("删除失败", "error");
-    } finally {
-      setIsDeleting(false);
-    }
-  }, [image.id, onDelete, isDeleting, closeContextMenu]);
+      try {
+        await onDelete(image.id)
+        // 不需要 toast，乐观更新已经处理了 UI
+      } catch {
+        showToast('删除失败', 'error')
+      } finally {
+        setIsDeleting(false)
+      }
+    },
+    [image.id, onDelete, isDeleting, closeContextMenu]
+  )
 
   // 鼠标事件处理
-  const handleMouseEnter = useCallback(() => setIsHovered(true), []);
-  const handleMouseLeave = useCallback(() => setIsHovered(false), []);
+  const handleMouseEnter = useCallback(() => setIsHovered(true), [])
+  const handleMouseLeave = useCallback(() => setIsHovered(false), [])
 
   // 快捷复制按钮
-  const handleQuickCopy = useCallback((e: React.MouseEvent) => {
-    e.stopPropagation();
-    copyToClipboard(getFullUrl(image.urls?.webp || image.urls?.original || ''));
-    setCopyStatus("copied");
-    setTimeout(() => setCopyStatus("idle"), 2000);
-  }, [image.urls]);
+  const handleQuickCopy = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation()
+      copyToClipboard(
+        getFullUrl(image.urls?.webp || image.urls?.original || '')
+      )
+      setCopyStatus('copied')
+      setTimeout(() => setCopyStatus('idle'), 2000)
+    },
+    [image.urls]
+  )
 
   // 右键菜单项 - 使用 useMemo 缓存
-  const menuGroups: ContextMenuGroup[] = useMemo(() => [
-    {
-      id: "copy",
-      items: [
-        {
-          id: "copy-original",
-          label: `复制原始链接 (${image.format.toUpperCase()})`,
-          onClick: () => handleCopy("original"),
-          icon: <ClipboardCopyIcon className="h-4 w-4" />,
-        },
-        {
-          id: "copy-webp",
-          label: "复制WebP链接",
-          onClick: () => handleCopy("webp"),
-          icon: <ClipboardCopyIcon className="h-4 w-4" />,
-          disabled: !image.urls?.webp,
-        },
-        {
-          id: "copy-avif",
-          label: "复制AVIF链接",
-          onClick: () => handleCopy("avif"),
-          icon: <ClipboardCopyIcon className="h-4 w-4" />,
-          disabled: !image.urls?.avif,
-        },
-      ],
-    },
-    {
-      id: "format",
-      items: [
-        {
-          id: "copy-markdown",
-          label: "复制Markdown标签",
-          onClick: () => handleCopy("markdown"),
-          icon: <FileIcon className="h-4 w-4" />,
-        },
-        {
-          id: "copy-html",
-          label: "复制HTML标签",
-          onClick: () => handleCopy("html"),
-          icon: <FileIcon className="h-4 w-4" />,
-        },
-      ],
-    },
-    {
-      id: "actions",
-      items: [
-        {
-          id: "preview",
-          label: "预览图片",
-          onClick: (e) => {
-            e.preventDefault();
-            handleOpen();
+  const menuGroups: ContextMenuGroup[] = useMemo(
+    () => [
+      {
+        id: 'copy',
+        items: [
+          {
+            id: 'copy-original',
+            label: `复制原始链接 (${image.format.toUpperCase()})`,
+            onClick: () => handleCopy('original'),
+            icon: <ClipboardCopyIcon className="h-4 w-4" />,
           },
-          icon: <EyeOpenIcon className="h-4 w-4" />,
-        },
-        {
-          id: "delete",
-          label: isDeleting ? "删除中..." : "删除图片",
-          onClick: handleDelete,
-          danger: true,
-          disabled: isDeleting,
-          icon: isDeleting ? (
-            <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-            </svg>
-          ) : <TrashIcon className="h-4 w-4" />,
-        },
-      ],
-    },
-  ], [image.format, image.urls, handleCopy, handleOpen, handleDelete, isDeleting]);
+          {
+            id: 'copy-webp',
+            label: '复制WebP链接',
+            onClick: () => handleCopy('webp'),
+            icon: <ClipboardCopyIcon className="h-4 w-4" />,
+            disabled: !image.urls?.webp,
+          },
+          {
+            id: 'copy-avif',
+            label: '复制AVIF链接',
+            onClick: () => handleCopy('avif'),
+            icon: <ClipboardCopyIcon className="h-4 w-4" />,
+            disabled: !image.urls?.avif,
+          },
+        ],
+      },
+      {
+        id: 'format',
+        items: [
+          {
+            id: 'copy-markdown',
+            label: '复制Markdown标签',
+            onClick: () => handleCopy('markdown'),
+            icon: <FileIcon className="h-4 w-4" />,
+          },
+          {
+            id: 'copy-html',
+            label: '复制HTML标签',
+            onClick: () => handleCopy('html'),
+            icon: <FileIcon className="h-4 w-4" />,
+          },
+        ],
+      },
+      {
+        id: 'actions',
+        items: [
+          {
+            id: 'preview',
+            label: '预览图片',
+            onClick: e => {
+              e.preventDefault()
+              handleOpen()
+            },
+            icon: <EyeOpenIcon className="h-4 w-4" />,
+          },
+          {
+            id: 'delete',
+            label: isDeleting ? '删除中...' : '删除图片',
+            onClick: handleDelete,
+            danger: true,
+            disabled: isDeleting,
+            icon: isDeleting ? (
+              <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24">
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                  fill="none"
+                />
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                />
+              </svg>
+            ) : (
+              <TrashIcon className="h-4 w-4" />
+            ),
+          },
+        ],
+      },
+    ],
+    [image.format, image.urls, handleCopy, handleOpen, handleDelete, isDeleting]
+  )
 
   return (
     <>
@@ -271,7 +306,7 @@ const ImageCard = React.memo(function ImageCard({
               alt={image.originalName}
               onLoad={handleImageLoad}
               className={`w-full h-full object-cover transition-all duration-500 ${
-                isLoading ? "opacity-0" : "opacity-100 group-hover:scale-105"
+                isLoading ? 'opacity-0' : 'opacity-100 group-hover:scale-105'
               }`}
             />
           ) : (
@@ -283,7 +318,7 @@ const ImageCard = React.memo(function ImageCard({
               loading="lazy"
               onLoad={handleImageLoad}
               className={`object-cover w-full h-full transition-all duration-500 ${
-                isLoading ? "opacity-0" : "opacity-100 group-hover:scale-105"
+                isLoading ? 'opacity-0' : 'opacity-100 group-hover:scale-105'
               }`}
               sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
               quality={75}
@@ -295,13 +330,13 @@ const ImageCard = React.memo(function ImageCard({
           {/* Image info overlay */}
           <div
             className={`absolute top-0 left-0 right-0 p-3 flex justify-between items-center bg-linear-to-b from-black/60 to-transparent text-white transition-opacity duration-300 ${
-              isLoading ? "opacity-0" : "opacity-100"
+              isLoading ? 'opacity-0' : 'opacity-100'
             }`}
           >
             <div className="flex space-x-1">
               <span
                 className={`text-xs font-medium px-2 py-1 rounded-full backdrop-blur-xs ${
-                  isGif ? "bg-green-500/70" : "bg-blue-500/70"
+                  isGif ? 'bg-green-500/70' : 'bg-blue-500/70'
                 }`}
               >
                 {getFormatLabel(image.format)}
@@ -318,13 +353,11 @@ const ImageCard = React.memo(function ImageCard({
               className="p-1.5 rounded-full bg-white/20 backdrop-blur-xs hover:bg-white/40 transition-colors"
               title="复制URL"
             >
-              {copyStatus === "idle" && (
-                <CopyIcon className="h-4 w-4" />
-              )}
-              {copyStatus === "copied" && (
+              {copyStatus === 'idle' && <CopyIcon className="h-4 w-4" />}
+              {copyStatus === 'copied' && (
                 <CheckIcon className="h-4 w-4 text-green-400" />
               )}
-              {copyStatus === "error" && (
+              {copyStatus === 'error' && (
                 <Cross1Icon className="h-4 w-4 text-red-400" />
               )}
             </motion.button>
@@ -341,7 +374,7 @@ const ImageCard = React.memo(function ImageCard({
         onClose={closeContextMenu}
       />
     </>
-  );
-});
+  )
+})
 
-export default ImageCard;
+export default ImageCard

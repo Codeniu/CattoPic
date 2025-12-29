@@ -191,7 +191,7 @@ GitHub Actions deployment avoids configuration conflicts when syncing upstream.
 | `CLOUDFLARE_ACCOUNT_ID` | Your Account ID |
 | `WRANGLER_TOML` | Complete content of your `wrangler.toml` file |
 
-4. **Trigger**: Push to `worker/**` on main branch, or manually trigger via Actions tab
+1. **Trigger**: Push to `worker/**` on main branch, or manually trigger via Actions tab
 
 ### 5. Add API Key
 
@@ -294,5 +294,3 @@ NEXT_PUBLIC_API_URL=http://localhost:8787
 ## License
 
 [GPL-3.0](./LICENSE)
-
-
